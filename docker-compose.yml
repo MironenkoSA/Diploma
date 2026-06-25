@@ -50,8 +50,8 @@ services:
       PORT: 4000
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/vintage_shop
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:4003}
+      FRONTEND_URL: http://147.45.100.191:3003
+      BACKEND_URL: http://147.45.100.191:4003
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_in_production_32chars!!}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh_32chars_secret!}
       JWT_ACCESS_EXPIRES_IN: 2h
@@ -73,7 +73,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:4003/api}
+        VITE_API_URL: http://147.45.100.191:4003/api
     container_name: atelier_frontend
     restart: unless-stopped
     depends_on:
