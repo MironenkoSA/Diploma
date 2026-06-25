@@ -1,0 +1,315 @@
+// prisma/schema.prisma
+// Дипломный проект — Интернет-магазин винтажных вещей "Ателье Историй"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  address          String?
+  role             Role      @default(USER)
+  consentGiven     Boolean   @default(false)
+  consentGivenAt   DateTime?
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?   @unique
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  orders             Order[]
+  views              ProductView[]
+  reviews            Review[]
+  notificationRules  NotificationRule[]
+  notifications      Notification[]
+  eventRegistrations EventRegistration[]
+
+  @@index([email])
+  @@index([deletedAt])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  products    Product[]
+  @@index([slug])
+}
+
+model Product {
+  id               String    @id @default(uuid())
+  name             String
+  slug             String    @unique
+  description      String
+  price            Decimal   @db.Decimal(10, 2)
+  stock            Int       @default(1)
+  images           String[]
+  era              String?
+  yearManufactured Int?
+  countryOfOrigin  String?
+  condition        Condition @default(GOOD)
+  isActive         Boolean   @default(true)
+  isFeatured       Boolean   @default(false)
+  isForFair        Boolean   @default(false)
+  hideFromMain     Boolean   @default(false)
+  viewCount        Int       @default(0)
+  categoryId       String
+
+  category   Category      @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+  views      ProductView[]
+  reviews    Review[]
+  fairItems  FairItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([price])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([countryOfOrigin])
+  @@index([era])
+  @@index([viewCount])
+  @@index([isForFair])
+  @@index([hideFromMain])
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+model ProductView {
+  id        String   @id @default(uuid())
+  userId    String?
+  sessionId String?
+  productId String
+  viewedAt  DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  userId          String
+  status          OrderStatus   @default(PENDING)
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  shippingAddress String
+  shippingCity    String
+  shippingCountry String
+  shippingZip     String
+  notes           String?
+  paymentStatus   PaymentStatus @default(AWAITING)
+  paymentMethod   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+enum PaymentStatus {
+  AWAITING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  priceAtTime Decimal @db.Decimal(10, 2)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model Promotion {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  imageUrl    String?
+  linkUrl     String?
+  isActive    Boolean  @default(true)
+  startsAt    DateTime
+  endsAt      DateTime
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([isActive])
+  @@index([startsAt, endsAt])
+}
+
+// ── Уведомления (п.1) ────────────────────────
+model NotificationRule {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  isActive        Boolean  @default(true)
+  categoryId      String?
+  countryOfOrigin String?
+  eraFrom         String?
+  eraTo           String?
+  maxPrice        Decimal? @db.Decimal(10, 2)
+  minPrice        Decimal? @db.Decimal(10, 2)
+  keyword         String?
+  notifyByEmail   Boolean  @default(true)
+  notifyInApp     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id])
+  notifications   Notification[]
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  ruleId    String?
+  productId String?
+  eventId   String?
+  fairId    String?
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+  rule      NotificationRule? @relation(fields: [ruleId], references: [id])
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  NEW_PRODUCT
+  EVENT_REMINDER
+  EVENT_REGISTERED
+  FAIR_STARTED
+  ORDER_STATUS
+}
+
+// ── Мероприятия (п.2) ─────────────────────────
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  imageUrl    String?
+  location    String
+  speaker        String?
+  price          Decimal? @db.Decimal(10, 2)
+  paymentHolder  String?
+  paymentBank    String?
+  paymentCard    String?
+  startsAt    DateTime
+  endsAt      DateTime
+  maxCapacity Int?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  registrations EventRegistration[]
+  @@index([startsAt])
+  @@index([isPublished])
+}
+
+model EventRegistration {
+  id             String                   @id @default(uuid())
+  eventId        String
+  userId         String
+  status         EventRegistrationStatus  @default(PENDING_PAYMENT)
+  paymentDeadline DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime                 @default(now())
+  event          Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           User                     @relation(fields: [userId], references: [id])
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentDeadline])
+}
+
+enum EventRegistrationStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  FREE
+}
+
+// ── Ярмарки (п.3) ─────────────────────────────
+model Fair {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  imageUrl    String?
+  startsAt    DateTime
+  endsAt      DateTime
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       FairItem[]
+  @@index([startsAt, endsAt])
+  @@index([isPublished])
+}
+
+model FairItem {
+  id          String  @id @default(uuid())
+  fairId      String
+  productId   String
+  discountPct Int?
+  fair        Fair    @relation(fields: [fairId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+  @@unique([fairId, productId])
+  @@index([fairId])
+}

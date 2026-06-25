@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750">
+  <rect width="600" height="750" fill="#2D6B4C" opacity="0.85"/>
+  <rect width="600" height="750" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0f0a" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1a0f0a" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+  <text x="300" y="340" text-anchor="middle" font-size="80" fill="white" opacity="0.9">🍽</text>
+  <text x="300" y="420" text-anchor="middle" font-family="Georgia,serif" font-size="32" fill="white" opacity="0.95">Посуда</text>
+</svg>
